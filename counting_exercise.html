@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Counting Speaker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background: #f0f0f0;
+      font-family: Arial, sans-serif;
+    }
+
+    button {
+      font-size: 40px;
+      padding: 30px 60px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+      margin: 10px;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #display {
+      font-size: 80px;
+      margin-top: 60px;
+      font-weight: bold;
+      color: #2c3e50;
+      text-align: center;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+
+<body>
+
+  <div>
+    <button id="controlBtn">5sec_Exercise</button>
+    <button id="exerciseBtn">15sec_Exercise</button>
+  </div>
+
+  <div id="display"></div>
+
+  <script>
+    let mainCount = 1;
+    let quick = 1;
+    let isRunning = false;
+    let timers = [];
+
+    let exerciseCount = 1;
+    let exerciseRunning = false;
+
+    function loadVoices() {
+      window.speechSynthesis.getVoices();
+    }
+
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+
+    function speak(text, callback) {
+      document.getElementById("display").textContent = text;
+
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.resume();
+
+      const utterance = new SpeechSynthesisUtterance(String(text));
+      utterance.lang = "en-US";
+
+      utterance.onend = function () {
+        if (callback) callback();
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function clearTimers() {
+      timers.forEach(t => clearTimeout(t));
+      timers = [];
+    }
+
+    function startCounting() {
+      if (mainCount > 10 || !isRunning) return;
+
+      timers.push(setTimeout(() => {
+        speak(mainCount, () => {
+          timers.push(setTimeout(() => {
+            if (!isRunning) return;
+            quick = 1;
+            quickCount();
+          }, 1000));
+        });
+      }, 500));
+    }
+
+    function quickCount() {
+      if (quick > 5 || !isRunning) {
+        mainCount++;
+        if (isRunning) {
+          timers.push(setTimeout(startCounting, 1000));
+        }
+        return;
+      }
+
+      speak(quick, () => {
+        quick++;
+        if (isRunning) {
+          timers.push(setTimeout(quickCount, 1000));
+        }
+      });
+    }
+
+    function toggleCounting() {
+      const btn = document.getElementById("controlBtn");
+      loadVoices();
+
+      if (!isRunning) {
+        isRunning = true;
+        exerciseRunning = false;
+
+        if (mainCount > 10) {
+          mainCount = 1;
+          quick = 1;
+        }
+
+        clearTimers();
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.resume();
+
+        btn.textContent = "Pause 5sec";
+        startCounting();
+      } else {
+        isRunning = false;
+        clearTimers();
+        window.speechSynthesis.cancel();
+        btn.textContent = "5sec_Exercise";
+      }
+    }
+
+    function startExercise() {
+      if (exerciseCount > 10 || !exerciseRunning) return;
+
+      timers.push(setTimeout(() => {
+        speak(exerciseCount, () => {
+          exerciseCount++;
+          if (exerciseRunning) {
+            timers.push(setTimeout(startExercise, 15000));
+          }
+        });
+      }, 500));
+    }
+
+    function toggleExercise() {
+      const btn = document.getElementById("exerciseBtn");
+      loadVoices();
+
+      if (!exerciseRunning) {
+        exerciseRunning = true;
+        isRunning = false;
+
+        if (exerciseCount > 10) {
+          exerciseCount = 1;
+        }
+
+        clearTimers();
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.resume();
+
+        btn.textContent = "Pause 15sec";
+        startExercise();
+      } else {
+        exerciseRunning = false;
+        clearTimers();
+        window.speechSynthesis.cancel();
+        btn.textContent = "15sec_Exercise";
+      }
+    }
+
+    document.getElementById("controlBtn").addEventListener("click", toggleCounting);
+    document.getElementById("exerciseBtn").addEventListener("click", toggleExercise);
+  </script>
+
+</body>
+</html>
